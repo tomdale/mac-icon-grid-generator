@@ -1,0 +1,12 @@
+#!/bin/bash
+
+COLLECTION_NAME=$1
+DMG_URL=$2
+
+temp_dir=$(mktemp -d)
+
+./extract-dmg "$DMG_URL" "$temp_dir"/"$COLLECTION_NAME"
+./extract-icons "$temp_dir"/"$COLLECTION_NAME"/Icons "$temp_dir"/pngs
+./grid "$temp_dir"/pngs "$COLLECTION_NAME.png"
+
+rm -rf "$temp_dir"

@@ -1,0 +1,97 @@
+#!/bin/bash
+
+# Function to download the DMG file
+download_dmg() {
+    local url="$1"
+    local temp_dir="$2"
+    curl -L -O --output-dir "$temp_dir" "$url"
+}
+
+# Function to mount the DMG file
+mount_dmg() {
+    local dmg_path="$1"
+    local mount_point=$(hdiutil attach "$dmg_path" | grep "/Volumes/" | cut -f 3-)
+    echo "$mount_point"
+}
+
+# Function to extract the contents of the DMG
+extract_dmg() {
+    local mount_point="$1"
+    local extract_path="$2"
+    echo "Extracting contents to $extract_path..."
+    mkdir -p "$extract_path"
+    cp -R "$mount_point"/. "$extract_path"
+}
+
+# Function to unmount the DMG
+unmount_dmg() {
+    local mount_point="$1"
+    echo "Unmounting the DMG file..."
+    hdiutil detach "$mount_point"
+}
+
+# Function to clean up temporary files
+cleanup() {
+    local temp_dir="$1"
+    echo "Cleaning up temporary files..."
+    rm -rf "$temp_dir"
+}
+
+# Main script
+main() {
+    # Check if URL is provided as an argument
+    if [ $# -lt 1 ]; then
+        echo "Usage: $0 <DMG_URL> [OUTPUT_DIR]"
+        exit 1
+    fi
+
+    # Get the DMG URL from command line argument
+    dmg_url="$1"
+
+    # Extract the filename from the URL
+    filename=$(basename "$dmg_url")
+    
+    # Remove the extension to get the base name
+    basename="${filename%.*}"
+
+    # Set the output directory
+    if [ $# -ge 2 ]; then
+        output_dir="$2"
+    else
+        output_dir="$basename"
+    fi
+
+    # Create a temporary directory
+    temp_dir=$(mktemp -d)
+
+    echo "Downloading DMG file..."
+    # Download the DMG file
+    download_dmg "$dmg_url" "$temp_dir"
+
+    # Get the path of the downloaded file
+    dmg_path="$temp_dir/$filename"
+
+    echo "Mounting the DMG file..."
+    # Mount the DMG file
+    mount_point=$(mount_dmg "$dmg_path")
+
+    if [ -n "$mount_point" ]; then
+        echo "Mounted at: $mount_point"
+
+        # Extract the contents
+        extract_dmg "$mount_point" "$output_dir"
+
+        # Unmount the DMG file
+        unmount_dmg "$mount_point"
+
+        echo "Extraction completed successfully!"
+    else
+        echo "Failed to mount the DMG file."
+    fi
+
+    # Clean up
+    cleanup "$temp_dir"
+}
+
+# Run the main function with all command line arguments
+main "$@"

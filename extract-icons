@@ -1,0 +1,57 @@
+#!/bin/bash
+
+# Check if correct number of arguments are provided
+if [ "$#" -ne 2 ]; then
+    echo "Usage: $0 <input_directory> <output_directory>"
+    exit 1
+fi
+
+INPUT_DIR="$1"
+OUTPUT_DIR="$2"
+
+# Check if input directory exists
+if [ ! -d "$INPUT_DIR" ]; then
+    echo "Error: Input directory does not exist"
+    exit 1
+fi
+
+# Create output directory if it doesn't exist
+mkdir -p "$OUTPUT_DIR"
+
+# Create a temporary directory for intermediate files
+TMP_DIR=$(mktemp -d)
+
+# Function to clean up temporary files
+cleanup() {
+    rm -rf "$TMP_DIR"
+}
+
+# Set up trap to clean up on exit
+trap cleanup EXIT
+
+# Iterate through subdirectories in the input directory
+find "$INPUT_DIR" -type d -depth 1 | while IFS= read -r dir; do
+    # Get the base name of the directory (icon name)
+    icon_name=$(basename "$dir")
+    
+    echo "Processing '$icon_name'"
+    
+    # Create a subdirectory in the temp directory for this icon
+    mkdir -p "$TMP_DIR/$icon_name"
+    
+    # Extract icon using icns2png
+    icns2png --extract "$dir/Icon"$'\r' --output "$TMP_DIR/$icon_name"
+    
+    # Find the highest resolution PNG (assuming it's the largest file)
+    largest_png=$(find "$TMP_DIR/$icon_name" -name "*.png" -type f -print0 | xargs -0 ls -S | head -1)
+    
+    if [ -n "$largest_png" ]; then
+        # Copy the largest PNG to the output directory
+        cp "$largest_png" "$OUTPUT_DIR/${icon_name}.png"
+        echo "Extracted '$icon_name'"
+    else
+        echo "No PNG found for '$icon_name'"
+    fi
+done
+
+echo "Icon extraction complete. Output saved to $OUTPUT_DIR"

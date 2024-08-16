@@ -1,0 +1,34 @@
+#!/bin/bash
+
+# Usage: ./grid <ICON_DIR> <OUTPUT_IMAGE> [BACKGROUND] [MARGIN]
+#
+# Description:
+# This script creates an icon grid from a directory containing PNG icons. It uses the 'montage' command from the ImageMagick package to create a square grid of 32x32 images. The grid can be customized with an optional background color and margin size.
+#
+# Arguments:
+#   ICON_DIR      Directory containing the PNG icons
+#   OUTPUT_IMAGE  Output file path for the generated icon grid
+#   BACKGROUND    (Optional) Background color for the grid (default: none)
+#   MARGIN        (Optional) Margin size between icons in pixels (default: 2)
+#
+# Example:
+#   ./grid icons/ output.png white 5
+#
+# This will create an icon grid using the PNG icons in the 'icons/' directory. The output grid will be saved as 'output.png' with a white background and a margin of 5 pixels between icons.
+
+# Directory containing the PNG icons
+ICON_DIR="$1"
+OUTPUT_IMAGE="$2"
+BACKGROUND="${3:-none}"
+MARGIN="${4:-2}"
+
+echo "Creating icon grid from $ICON_DIR with margin $MARGIN"
+
+# Create a montage of the 32x32 images into a square grid
+montage "$ICON_DIR"/*.png -geometry +${MARGIN}+${MARGIN} -background ${BACKGROUND} "$OUTPUT_IMAGE"
+echo "Original icon grid saved as $OUTPUT_IMAGE"
+
+# Create a 4x scaled-up version with nearest-neighbor interpolation
+scaled_output="${OUTPUT_IMAGE%.*}_4x.${OUTPUT_IMAGE##*.}"
+magick "$OUTPUT_IMAGE" -filter point -resize 400% "$scaled_output"
+echo "4x scaled icon grid saved as $scaled_output"
